@@ -303,7 +303,7 @@ struct AIECoreToStandardPass
     // some bogus target triple in the original mlir.  In reality this should
     // pick the 'aie' target triple.
     m->setAttr(LLVM::LLVMDialect::getTargetTripleAttrName(),
-               builder.getStringAttr("aie"));
+               builder.getStringAttr(""));
 
     // Extract all CoreOps
     // Create an LLVM func for each CoreOp

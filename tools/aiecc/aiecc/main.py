@@ -83,7 +83,7 @@ def run_flow(opts, tmpdirname):
                             '--cse',
                             '--convert-vector-to-llvm',
                             '--convert-memref-to-llvm',
-                            '--convert-func-to-llvm=use-bare-ptr-memref-call-conv',
+                            '--convert-func-to-llvm',
                             '--convert-cf-to-llvm',
                             '--canonicalize', '--cse', file_core, '-o', file_opt_core])
         file_core_bcf = tmpcorefile(core, "bcf")
@@ -92,6 +92,10 @@ def run_flow(opts, tmpdirname):
         do_call(['aie-translate', file_with_addresses, '--aie-generate-ldscript', '--tilecol=%d' % corecol, '--tilerow=%d' % corerow, '-o', file_core_ldscript])
         file_core_llvmir = tmpcorefile(core, "ll")
         do_call(['aie-translate', '--mlir-to-llvmir', file_opt_core, '-o', file_core_llvmir])
+        file_core_llvmir_opted = tmpcorefile(core, "opted.ll")
+        do_call(['opt', '-O2', '-S', file_core_llvmir, '-o', file_core_llvmir_opted])
+        file_core_llvmir_stripped = tmpcorefile(core, "stripped.ll")
+        do_call(['opt', '-strip', '-S', file_core_llvmir_opted, '-o', file_core_llvmir_stripped])
         file_core_elf = elf_file if elf_file else corefile(".", core, "elf")
         file_core_obj = tmpcorefile(core, "o")
         if(opts.xchesscc):
@@ -146,10 +150,11 @@ def run_flow(opts, tmpdirname):
         cmd += ['--sysroot=%s' % opts.sysroot]
         if(opts.xaie == 2):
             cmd += ['-DLIBXAIENGINEV2']
-            cmd += ['-I%s/usr/include/c++/10.2.0' % opts.sysroot]
-            cmd += ['-I%s/usr/include/c++/10.2.0/aarch64-xilinx-linux' % opts.sysroot]
-            cmd += ['-I%s/usr/include/c++/10.2.0/backward' % opts.sysroot]
-            cmd += ['-L%s/usr/lib/aarch64-xilinx-linux/10.2.0' % opts.sysroot]
+        cmd += ['-I%s/usr/include/c++/9.2.0' % opts.sysroot]
+        cmd += ['-I%s/usr/include/c++/9.2.0/aarch64-xilinx-linux' % opts.sysroot]
+        cmd += ['-I%s/usr/include/c++/9.2.0/backward' % opts.sysroot]
+        cmd += ['-L%s/usr/lib/aarch64-xilinx-linux/9.2.0' % opts.sysroot]
+        cmd += ['-B%s/usr/lib/aarch64-xilinx-linux/9.2.0' % opts.sysroot]
       cmd += ['-I%s/opt/xaiengine/include' % opts.sysroot]
       cmd += ['-L%s/opt/xaiengine/lib' % opts.sysroot]
       cmd += ['-I%s' % tmpdirname]
@@ -194,7 +199,7 @@ def main(builtin_params={}):
         vitis_path = os.path.dirname(vitis_bin_path)
         os.environ['VITIS'] = vitis_path
         print("Found Vitis at " + vitis_path)
-        os.environ['PATH'] = os.pathsep.join([vitis_bin_path, os.environ['PATH']])
+        os.environ['PATH'] = os.pathsep.join([os.environ['PATH'], vitis_bin_path])
  
     if('VITIS' in os.environ):
       vitis_path = os.environ['VITIS']
